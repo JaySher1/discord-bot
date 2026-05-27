@@ -15,6 +15,7 @@ import { recordCommandUse } from "./services/commandStats.js";
 import { getGuildConfig } from "./services/configStore.js";
 import { initializeDatabase } from "./services/database.js";
 import { startHealthServer } from "./services/healthServer.js";
+import { initializeMusicPlayer } from "./services/music/musicPlayer.js";
 
 initializeDatabase();
 
@@ -25,10 +26,13 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates
   ],
   partials: [Partials.Channel]
 });
+
+await initializeMusicPlayer(client);
 
 const commandCollection = new Collection(commands.map((command) => [command.data.name, command]));
 

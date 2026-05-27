@@ -17,6 +17,13 @@ import { diceCommand } from "./games/dice.js";
 import { guessCommand } from "./games/guess.js";
 import { rpsCommand } from "./games/rps.js";
 import { triviaCommand } from "./games/trivia.js";
+import { nowPlayingCommand } from "./music/nowplaying.js";
+import { pauseCommand } from "./music/pause.js";
+import { playCommand } from "./music/play.js";
+import { queueCommand } from "./music/queue.js";
+import { resumeCommand } from "./music/resume.js";
+import { skipCommand } from "./music/skip.js";
+import { stopCommand } from "./music/stop.js";
 import { animeBattleCommand } from "./nsfw/animeBattle.js";
 import { anilistCommand } from "./nsfw/anilist.js";
 import { bonkCommand } from "./nsfw/bonk.js";
@@ -61,6 +68,13 @@ export const commands: SlashCommand[] = [
   rpsCommand,
   guessCommand,
   triviaCommand,
+  playCommand,
+  pauseCommand,
+  resumeCommand,
+  skipCommand,
+  stopCommand,
+  queueCommand,
+  nowPlayingCommand,
   waifuCommand,
   claimCommand,
   collectionCommand,
