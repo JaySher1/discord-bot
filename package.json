@@ -1,0 +1,32 @@
+{
+  "name": "server-command-discord-bot",
+  "version": "1.0.0",
+  "description": "A TypeScript Discord.js bot with moderation, welcome messages, games, utilities, and server configuration.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "node dist/deploy-commands.js",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js",
+    "typescript",
+    "moderation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
