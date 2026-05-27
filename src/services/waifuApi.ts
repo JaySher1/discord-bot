@@ -31,6 +31,7 @@ type WaifuImResponse = {
   items?: WaifuImImage[];
 };
 
+const fetchTimeoutMs = 8_000;
 const excludedTags = [
   "loli",
   "shota",
@@ -74,26 +75,48 @@ function mapImage(image: WaifuImImage): WaifuImage | null {
   };
 }
 
-export async function fetchAdultWaifu(): Promise<WaifuImage> {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const response = await fetch(buildWaifuUrl(), {
+async function fetchWaifuResponse(): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs);
+
+  try {
+    return await fetch(buildWaifuUrl(), {
       headers: {
         Accept: "application/json",
         "User-Agent": "ServerCommandDiscordBot/1.0"
-      }
+      },
+      signal: controller.signal
     });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
-    if (!response.ok) {
-      throw new Error(`Waifu.im returned HTTP ${response.status}`);
-    }
+export async function fetchAdultWaifu(): Promise<WaifuImage> {
+  let lastError: unknown;
 
-    const data = (await response.json()) as WaifuImResponse;
-    const image = data.items?.map(mapImage).find(Boolean);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetchWaifuResponse();
 
-    if (image) {
-      return image;
+      if (!response.ok) {
+        throw new Error(`Waifu.im returned HTTP ${response.status}`);
+      }
+
+      const data = (await response.json()) as WaifuImResponse;
+      const image = data.items?.map(mapImage).find(Boolean);
+
+      if (image) {
+        return image;
+      }
+
+      lastError = new Error("Waifu.im returned only blocked or unusable images.");
+    } catch (error) {
+      lastError = error;
     }
   }
 
-  throw new Error("Waifu.im did not return a safe adult waifu after filtering.");
+  throw new Error("Waifu.im did not return a safe adult waifu after filtering.", {
+    cause: lastError
+  });
 }

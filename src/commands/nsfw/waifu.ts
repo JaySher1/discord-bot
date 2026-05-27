@@ -14,28 +14,35 @@ export const waifuCommand: SlashCommand = {
       return;
     }
 
-    await interaction.deferReply();
+    await interaction.reply("Pulling a waifu card...");
 
-    const image = await fetchAdultWaifu();
-    const waifu = saveWaifu(image);
-    rememberLastPull(interaction.guildId, interaction.user.id, waifu.id);
+    try {
+      const image = await fetchAdultWaifu();
+      const waifu = saveWaifu(image);
+      rememberLastPull(interaction.guildId, interaction.user.id, waifu.id);
 
-    const claim = getClaim(interaction.guildId, waifu.id);
-    const embed = new EmbedBuilder()
-      .setTitle(`Waifu Pull: ${waifu.id}`)
-      .setDescription(
-        claim
-          ? `Already claimed by <@${claim.ownerId}>. If you want her, bring a trade offer.`
-          : "Unclaimed. Use `/claim` if you want to lock this one into your collection."
-      )
-      .setImage(waifu.url)
-      .addFields(
-        { name: "Tags", value: waifu.tags.slice(0, 8).join(", ") || "waifu", inline: true },
-        { name: "Source", value: waifu.source ?? "Unknown", inline: true }
-      )
-      .setFooter({ text: "Adult-only filtered. Unsafe tags are blocked before posting." })
-      .setTimestamp();
+      const claim = getClaim(interaction.guildId, waifu.id);
+      const embed = new EmbedBuilder()
+        .setTitle(`Waifu Pull: ${waifu.id}`)
+        .setDescription(
+          claim
+            ? `Already claimed by <@${claim.ownerId}>. If you want her, bring a trade offer.`
+            : "Unclaimed. Use `/claim` if you want to lock this one into your collection."
+        )
+        .setImage(waifu.url)
+        .addFields(
+          { name: "Tags", value: waifu.tags.slice(0, 8).join(", ") || "waifu", inline: true },
+          { name: "Source", value: waifu.source ?? "Unknown", inline: true }
+        )
+        .setFooter({ text: "Adult-only filtered. Unsafe tags are blocked before posting." })
+        .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ content: "", embeds: [embed] });
+    } catch (error) {
+      console.error("Waifu pull failed", error);
+      await interaction.editReply(
+        "I answered Discord, but the waifu image service did not respond cleanly. Try `/waifu` again in a minute."
+      );
+    }
   }
 };
