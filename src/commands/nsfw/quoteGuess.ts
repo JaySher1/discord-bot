@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, SlashCommandBuilder } from "discord.js";
 import { quoteQuestions } from "../../data/animePrompts.js";
+import { replyAndFetchMessage } from "../../lib/interactionResponses.js";
 import { requireNsfwChannel } from "../../services/nsfwSafety.js";
 import type { SlashCommand } from "../../types/command.js";
 
@@ -23,7 +24,7 @@ export const quoteGuessCommand: SlashCommand = {
         new ButtonBuilder().setCustomId(`quote:${interaction.id}:${index}`).setLabel(choice).setStyle(ButtonStyle.Secondary)
       )
     );
-    const response = await interaction.reply({ content: `**Who said it?** "${question.quote}"`, components: [row], fetchReply: true });
+    const response = await replyAndFetchMessage(interaction, { content: `**Who said it?** "${question.quote}"`, components: [row] });
 
     try {
       const selected = await response.awaitMessageComponent({

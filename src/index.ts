@@ -14,8 +14,11 @@ import { env } from "./config/env.js";
 import { recordCommandUse } from "./services/commandStats.js";
 import { getGuildConfig } from "./services/configStore.js";
 import { initializeDatabase } from "./services/database.js";
+import { startHealthServer } from "./services/healthServer.js";
 
 initializeDatabase();
+
+let discordReady = false;
 
 const client = new Client({
   intents: [
@@ -29,7 +32,16 @@ const client = new Client({
 
 const commandCollection = new Collection(commands.map((command) => [command.data.name, command]));
 
+const healthServer = startHealthServer({
+  port: env.port,
+  getStatus: () => ({
+    discordReady,
+    commandsLoaded: commands.length
+  })
+});
+
 client.once(Events.ClientReady, (readyClient) => {
+  discordReady = true;
   console.log(`Logged in as ${readyClient.user.tag}`);
   console.log(`Loaded ${commands.length} slash commands.`);
 });
@@ -89,5 +101,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 });
+
+function shutdown(): void {
+  discordReady = false;
+  client.destroy();
+  healthServer.close(() => {
+    process.exit(0);
+  });
+}
+
+process.once("SIGINT", shutdown);
+process.once("SIGTERM", shutdown);
 
 await client.login(env.token);

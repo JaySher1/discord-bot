@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, SlashCommandBuilder } from "discord.js";
 import { openingQuestions } from "../../data/animePrompts.js";
+import { replyAndFetchMessage } from "../../lib/interactionResponses.js";
 import { requireNsfwChannel } from "../../services/nsfwSafety.js";
 import type { SlashCommand } from "../../types/command.js";
 
@@ -23,7 +24,7 @@ export const opGuessCommand: SlashCommand = {
         new ButtonBuilder().setCustomId(`op:${interaction.id}:${index}`).setLabel(choice).setStyle(ButtonStyle.Secondary)
       )
     );
-    const response = await interaction.reply({ content: `**Opening hint:** ${question.hint}`, components: [row], fetchReply: true });
+    const response = await replyAndFetchMessage(interaction, { content: `**Opening hint:** ${question.hint}`, components: [row] });
 
     try {
       const selected = await response.awaitMessageComponent({

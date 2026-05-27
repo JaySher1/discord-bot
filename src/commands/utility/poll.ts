@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
+import { replyAndFetchMessage } from "../../lib/interactionResponses.js";
 import type { SlashCommand } from "../../types/command.js";
 
 export const pollCommand: SlashCommand = {
@@ -11,9 +12,8 @@ export const pollCommand: SlashCommand = {
     ),
   async execute(interaction) {
     const question = interaction.options.getString("question", true);
-    const message = await interaction.reply({
+    const message = await replyAndFetchMessage(interaction, {
       content: `**Poll:** ${question}\n\nVote with the reactions below.`,
-      fetchReply: true
     });
 
     await message.react("👍");

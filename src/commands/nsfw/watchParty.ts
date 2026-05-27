@@ -1,4 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { replyAndFetchMessage } from "../../lib/interactionResponses.js";
 import { requireNsfwChannel } from "../../services/nsfwSafety.js";
 import type { SlashCommand } from "../../types/command.js";
 
@@ -19,7 +20,7 @@ export const watchPartyCommand: SlashCommand = {
       .setDescription(`**${title}**\nStarts: **${time}**\nReact if you are showing up.`)
       .setTimestamp();
 
-    const message = await interaction.reply({ embeds: [embed], fetchReply: true });
+    const message = await replyAndFetchMessage(interaction, { embeds: [embed] });
     await message.react("✅");
     await message.react("👀");
   }

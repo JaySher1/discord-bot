@@ -7,6 +7,7 @@ import {
   MessageFlags,
   SlashCommandBuilder
 } from "discord.js";
+import { replyAndFetchMessage } from "../../lib/interactionResponses.js";
 import { getDb, nowIso } from "../../services/database.js";
 import { assertSafeAdultText, requireNsfwChannel } from "../../services/nsfwSafety.js";
 import type { SlashCommand } from "../../types/command.js";
@@ -64,7 +65,7 @@ export const tierlistCommand: SlashCommand = {
       .setFooter({ text: "Vote once. Results update for 60 seconds." })
       .setTimestamp();
 
-    const message = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+    const message = await replyAndFetchMessage(interaction, { embeds: [embed], components: [row] });
     const collector = message.createMessageComponentCollector({
       componentType: ComponentType.Button,
       time: 60_000

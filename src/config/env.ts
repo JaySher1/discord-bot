@@ -6,6 +6,7 @@ type Env = {
   guildId?: string;
   defaultWelcomeChannelId?: string;
   defaultLogChannelId?: string;
+  port: number;
 };
 
 function optionalEnv(name: string): string | undefined {
@@ -23,10 +24,27 @@ function requiredEnv(name: string): string {
   return value;
 }
 
+function optionalPort(name: string, fallback: number): number {
+  const rawValue = optionalEnv(name);
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  const value = Number(rawValue);
+
+  if (!Number.isInteger(value) || value <= 0 || value > 65_535) {
+    throw new Error(`Invalid ${name}: expected a TCP port number`);
+  }
+
+  return value;
+}
+
 export const env: Env = {
   token: requiredEnv("DISCORD_TOKEN"),
   clientId: requiredEnv("DISCORD_CLIENT_ID"),
   guildId: optionalEnv("DISCORD_GUILD_ID"),
   defaultWelcomeChannelId: optionalEnv("DEFAULT_WELCOME_CHANNEL_ID"),
-  defaultLogChannelId: optionalEnv("DEFAULT_LOG_CHANNEL_ID")
+  defaultLogChannelId: optionalEnv("DEFAULT_LOG_CHANNEL_ID"),
+  port: optionalPort("PORT", 8080)
 };

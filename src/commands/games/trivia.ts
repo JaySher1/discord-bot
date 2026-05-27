@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, SlashCommandBuilder } from "discord.js";
 import { triviaQuestions } from "../../data/trivia.js";
+import { replyAndFetchMessage } from "../../lib/interactionResponses.js";
 import type { SlashCommand } from "../../types/command.js";
 
 export const triviaCommand: SlashCommand = {
@@ -23,10 +24,9 @@ export const triviaCommand: SlashCommand = {
       )
     );
 
-    const response = await interaction.reply({
+    const response = await replyAndFetchMessage(interaction, {
       content: `**Trivia:** ${question.question}`,
-      components: [row],
-      fetchReply: true
+      components: [row]
     });
 
     try {

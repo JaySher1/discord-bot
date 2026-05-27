@@ -7,6 +7,7 @@ import {
   MessageFlags,
   SlashCommandBuilder
 } from "discord.js";
+import { replyAndFetchMessage } from "../../lib/interactionResponses.js";
 import { assertSafeAdultText, requireNsfwChannel } from "../../services/nsfwSafety.js";
 import type { SlashCommand } from "../../types/command.js";
 
@@ -39,7 +40,7 @@ export const animeBattleCommand: SlashCommand = {
       .setTitle("Anime Battle")
       .setDescription(`**${first}** vs **${second}**\n\nVote for who clears.`);
 
-    const message = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+    const message = await replyAndFetchMessage(interaction, { embeds: [embed], components: [row] });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 45_000 });
 
     collector.on("collect", async (button) => {

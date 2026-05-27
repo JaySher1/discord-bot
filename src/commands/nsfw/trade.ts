@@ -6,6 +6,7 @@ import {
   MessageFlags,
   SlashCommandBuilder
 } from "discord.js";
+import { replyAndFetchMessage } from "../../lib/interactionResponses.js";
 import { requireNsfwChannel } from "../../services/nsfwSafety.js";
 import { cancelTrade, completeTrade, createTrade, getClaim } from "../../services/waifuStore.js";
 import type { SlashCommand } from "../../types/command.js";
@@ -72,10 +73,9 @@ export const tradeCommand: SlashCommand = {
         .setStyle(ButtonStyle.Danger)
     );
 
-    const message = await interaction.reply({
+    const message = await replyAndFetchMessage(interaction, {
       content: `${member}, ${interaction.user} wants to trade **${offer}** for your **${request}**.`,
-      components: [row],
-      fetchReply: true
+      components: [row]
     });
 
     try {
