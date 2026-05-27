@@ -10,7 +10,7 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
 - Utility: help, server info, user info, avatar, and polls
 - Games/fun: coin flip, dice, rock-paper-scissors, number guessing, and trivia
 - Adult-only waifu economy: pulls, claims, collections, trades, releases, profiles, tierlists, and NSFW social commands
-- SQLite persistence for waifu ownership, trades, tier votes, NSFW channels, and command stats
+- SQLite persistence for waifu ownership, trades, tier votes, optional adult channel markers, and command stats
 - JSON-backed server configuration for a simple first version
 
 ## Setup
@@ -81,12 +81,12 @@ Run `/help` in Discord after deploying commands to see the full command list.
 
 ## Adult command setup
 
-Adult waifu commands are locked until an admin enables a channel:
+Adult waifu commands are available in server channels without requiring Discord's NSFW channel flag. Admins can still mark a preferred adult bot channel for organization:
 
 ```text
 /setnsfwchannel channel:#your-adult-channel enabled:true
 ```
 
-The bot also allows adult commands in Discord channels marked NSFW. Even in loose server mode, the safety filter blocks underage, ambiguous-age, incest, and non-consensual terms before posting or accepting entries.
+Even in loose server mode, the safety filter blocks underage, ambiguous-age, incest, and non-consensual terms before posting or accepting entries.
 
 The waifu economy uses `data/bot.sqlite`. This works well on a Droplet or any persistent server. DigitalOcean App Platform can redeploy workers onto fresh storage, so use a Droplet for SQLite or migrate this storage to Postgres before relying on long-term collections.

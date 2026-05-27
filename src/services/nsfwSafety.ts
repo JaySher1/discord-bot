@@ -69,24 +69,11 @@ export async function requireNsfwChannel(
 ): Promise<boolean> {
   if (!interaction.guildId || !interaction.channelId) {
     await interaction.reply({
-      content: "NSFW commands only work inside a server.",
+      content: "Adult commands only work inside a server.",
       flags: MessageFlags.Ephemeral
     });
     return false;
   }
 
-  if (
-    isDiscordNsfwTextChannel(interaction) ||
-    isConfiguredNsfwChannel(interaction.guildId, interaction.channelId)
-  ) {
-    return true;
-  }
-
-  await interaction.reply({
-    content:
-      "This command is locked to configured adult channels. Ask an admin to use /setnsfwchannel here first.",
-    flags: MessageFlags.Ephemeral
-  });
-
-  return false;
+  return true;
 }
