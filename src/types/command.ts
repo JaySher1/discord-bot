@@ -6,7 +6,7 @@ import type {
   SlashCommandSubcommandsOnlyBuilder
 } from "discord.js";
 
-export type CommandCategory = "Admin" | "Moderation" | "Utility" | "Games";
+export type CommandCategory = "Admin" | "Moderation" | "Utility" | "Games" | "NSFW";
 
 export type CommandData =
   | SlashCommandBuilder

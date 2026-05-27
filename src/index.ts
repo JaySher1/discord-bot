@@ -11,7 +11,11 @@ import {
 } from "discord.js";
 import { commands } from "./commands/index.js";
 import { env } from "./config/env.js";
+import { recordCommandUse } from "./services/commandStats.js";
 import { getGuildConfig } from "./services/configStore.js";
+import { initializeDatabase } from "./services/database.js";
+
+initializeDatabase();
 
 const client = new Client({
   intents: [
@@ -69,6 +73,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   try {
     await command.execute(interaction as ChatInputCommandInteraction, client);
+    recordCommandUse(interaction.guildId, interaction.user.id, interaction.commandName);
   } catch (error) {
     console.error(`Command failed: ${interaction.commandName}`, error);
 

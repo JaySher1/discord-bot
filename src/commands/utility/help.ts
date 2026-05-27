@@ -11,7 +11,7 @@ export const helpCommand: SlashCommand = {
         acc[command.category].push(`/${command.data.name} - ${command.data.description}`);
         return acc;
       },
-      { Admin: [], Moderation: [], Utility: [], Games: [] }
+      { Admin: [], Moderation: [], Utility: [], Games: [], NSFW: [] }
     );
 
     const embed = new EmbedBuilder()
