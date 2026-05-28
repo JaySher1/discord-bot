@@ -9,7 +9,6 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
 - Moderation: kick, ban, timeout, untimeout, warn, and purge
 - Utility: help, server info, user info, avatar, and polls
 - Games/fun: coin flip, dice, rock-paper-scissors, number guessing, and trivia
-- Music: SoundCloud/direct audio playback with per-server queues
 - Adult-only waifu economy: pulls, claims, collections, trades, releases, profiles, tierlists, and NSFW social commands
 - SQLite persistence for waifu ownership, trades, tier votes, optional adult channel markers, and command stats
 - JSON-backed server configuration for a simple first version
@@ -71,9 +70,6 @@ When inviting the bot, enable the scopes `bot` and `applications.commands`. The 
 - Send Messages
 - Use Slash Commands
 - Embed Links
-- View Channel
-- Connect
-- Speak
 - Manage Messages
 - Kick Members
 - Ban Members
@@ -82,24 +78,6 @@ When inviting the bot, enable the scopes `bot` and `applications.commands`. The 
 ## Commands
 
 Run `/help` in Discord after deploying commands to see the full command list.
-
-## Music playback
-
-Music commands:
-
-- `/play query:<song or URL>`
-- `/pause`
-- `/resume`
-- `/skip`
-- `/stop`
-- `/queue`
-- `/nowplaying`
-
-The bot joins the voice channel of the user who runs `/play`. The user must already be in a voice channel, and the bot needs `View Channel`, `Connect`, and `Speak` permissions in that channel.
-
-Version 1 supports SoundCloud searches, SoundCloud URLs, and direct audio stream URLs through `discord-player`. YouTube links are intentionally rejected with `YouTube is not supported in this version.` because YouTube playback is fragile and not ToS-safe enough for this bot.
-
-Music queues are kept per server in memory. Restarting the bot clears active queues.
 
 ## Adult command setup
 
