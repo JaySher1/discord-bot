@@ -6,6 +6,8 @@ type Env = {
   guildId?: string;
   defaultWelcomeChannelId?: string;
   defaultLogChannelId?: string;
+  youtubeCookie?: string;
+  youtubeUserAgent?: string;
   port: number;
 };
 
@@ -46,5 +48,7 @@ export const env: Env = {
   guildId: optionalEnv("DISCORD_GUILD_ID"),
   defaultWelcomeChannelId: optionalEnv("DEFAULT_WELCOME_CHANNEL_ID"),
   defaultLogChannelId: optionalEnv("DEFAULT_LOG_CHANNEL_ID"),
+  youtubeCookie: optionalEnv("YOUTUBE_COOKIE"),
+  youtubeUserAgent: optionalEnv("YOUTUBE_USER_AGENT"),
   port: optionalPort("PORT", 8080)
 };

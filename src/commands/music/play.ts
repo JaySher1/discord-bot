@@ -15,6 +15,7 @@ import {
 import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import play from "play-dl";
 import type { SoundCloudTrack } from "play-dl";
+import { env } from "../../config/env.js";
 import type { SlashCommand } from "../../types/command.js";
 
 type PlayStream = Awaited<ReturnType<typeof play.stream>>;
@@ -32,6 +33,7 @@ type MusicSession = {
 };
 
 const musicSessions = new Map<string, MusicSession>();
+let youtubeSetup = false;
 let soundCloudSetup: Promise<void> | null = null;
 
 export const playCommand: SlashCommand = {
@@ -135,8 +137,7 @@ export const playCommand: SlashCommand = {
     } catch (error) {
       console.error("Play command failed", error);
       cleanupGuildSession(interaction.guild.id);
-      const message = error instanceof Error ? error.message : "That track could not be played.";
-      await interaction.editReply(`I could not play that. ${message}`);
+      await interaction.editReply(`I could not play that. ${toPublicPlayError(error)}`);
     }
   }
 };
@@ -164,6 +165,8 @@ async function resolveTrack(input: string): Promise<ResolvedTrack> {
     throw new Error("That link is not a supported YouTube video or SoundCloud track.");
   }
 
+  ensureYouTubeReady();
+
   const results = await play.search(input, {
     limit: 1,
     source: {
@@ -180,6 +183,8 @@ async function resolveTrack(input: string): Promise<ResolvedTrack> {
 }
 
 async function resolveYouTubeUrl(url: string): Promise<ResolvedTrack> {
+  ensureYouTubeReady();
+
   const validation = play.yt_validate(url);
 
   if (validation === "playlist") {
@@ -199,6 +204,27 @@ async function resolveYouTubeUrl(url: string): Promise<ResolvedTrack> {
     url: info.video_details.url,
     stream
   };
+}
+
+function ensureYouTubeReady(): void {
+  if (youtubeSetup) {
+    return;
+  }
+
+  youtubeSetup = true;
+
+  if (!env.youtubeCookie && !env.youtubeUserAgent) {
+    return;
+  }
+
+  play.setToken({
+    youtube: env.youtubeCookie
+      ? {
+          cookie: env.youtubeCookie
+        }
+      : undefined,
+    useragent: env.youtubeUserAgent ? [env.youtubeUserAgent] : undefined
+  });
 }
 
 async function resolveSoundCloudUrl(url: string): Promise<ResolvedTrack> {
@@ -280,6 +306,31 @@ function isSpotifyUrl(url: string): boolean {
 
 function isSoundCloudTrack(track: Awaited<ReturnType<typeof play.soundcloud>>): track is SoundCloudTrack {
   return track.type === "track";
+}
+
+function toPublicPlayError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "That track could not be played.";
+
+  if (isYouTubeBotChallenge(message)) {
+    return [
+      "YouTube is asking the server to sign in to confirm it is not a bot.",
+      "Add a fresh `YOUTUBE_COOKIE` environment variable on the host, then restart the bot.",
+      "You can still try a SoundCloud track while YouTube is blocking the server."
+    ].join(" ");
+  }
+
+  return message;
+}
+
+function isYouTubeBotChallenge(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("sign in to confirm") ||
+    normalized.includes("confirm you're not a bot") ||
+    normalized.includes("confirm you are not a bot") ||
+    normalized.includes("captcha page") ||
+    normalized.includes("youtube has detected that you are a bot")
+  );
 }
 
 function toDiscordStreamType(type: PlayStream["type"]): StreamType {
