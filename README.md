@@ -9,7 +9,7 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
 - Moderation: kick, ban, timeout, untimeout, warn, and purge
 - Utility: help, server info, user info, avatar, and polls
 - Games/fun: coin flip, dice, rock-paper-scissors, number guessing, and trivia
-- Music: `/play` streams YouTube searches, YouTube links, and SoundCloud track links into voice
+- Music: `/play` uses Lavalink to stream YouTube searches, YouTube links, and SoundCloud track links into voice
 - Adult-only waifu economy: pulls, claims, collections, trades, releases, profiles, tierlists, and NSFW social commands
 - SQLite persistence for waifu ownership, trades, tier votes, optional adult channel markers, and command stats
 - JSON-backed server configuration for a simple first version
@@ -28,6 +28,10 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
    DISCORD_TOKEN=...
    DISCORD_CLIENT_ID=...
    DISCORD_GUILD_ID=...
+   LAVALINK_HOST=127.0.0.1
+   LAVALINK_PORT=2333
+   LAVALINK_PASSWORD=...
+   LAVALINK_SECURE=false
    ```
 
 3. Build the bot:
@@ -56,13 +60,73 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
 
 ## VPS notes
 
-On a VPS, keep `.env` private and run the bot from the project directory. A process manager such as PM2 is a good next step after the bot is configured:
+On a VPS or Droplet, keep `.env` private and run the bot from the project directory. A process manager such as PM2 is a good next step after the bot is configured:
 
 ```powershell
 npm install -g pm2
 pm2 start dist/index.js --name server-command-bot
 pm2 save
 ```
+
+## Lavalink music setup
+
+Music playback requires a separate Lavalink server. On a single Ubuntu Droplet, run Lavalink on the same machine as the bot and point the bot at `127.0.0.1`.
+
+Create `/opt/lavalink/application.yml`:
+
+```yaml
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.0"
+      repository: "https://maven.lavalink.dev/releases"
+      snapshot: false
+  server:
+    password: "change-this-password"
+    sources:
+      youtube: false
+      soundcloud: true
+      bandcamp: false
+      twitch: false
+      vimeo: false
+      nico: false
+      http: false
+      local: false
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: false
+    clients:
+      - MUSIC
+      - ANDROID_VR
+      - WEB
+      - WEBEMBEDDED
+```
+
+Start Lavalink with Docker:
+
+```bash
+docker run -d \
+  --name lavalink \
+  --restart unless-stopped \
+  -p 127.0.0.1:2333:2333 \
+  -v /opt/lavalink/application.yml:/opt/Lavalink/application.yml \
+  ghcr.io/lavalink-devs/lavalink:4-alpine
+```
+
+Check logs:
+
+```bash
+docker logs -f lavalink
+```
+
+Set the bot `.env` password to the same value used in `application.yml`.
 
 ## Discord permissions
 

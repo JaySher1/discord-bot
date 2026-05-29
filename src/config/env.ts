@@ -6,8 +6,10 @@ type Env = {
   guildId?: string;
   defaultWelcomeChannelId?: string;
   defaultLogChannelId?: string;
-  youtubeCookie?: string;
-  youtubeUserAgent?: string;
+  lavalinkHost?: string;
+  lavalinkPort?: number;
+  lavalinkPassword?: string;
+  lavalinkSecure: boolean;
   port: number;
 };
 
@@ -42,13 +44,33 @@ function optionalPort(name: string, fallback: number): number {
   return value;
 }
 
+function optionalBoolean(name: string, fallback: boolean): boolean {
+  const rawValue = optionalEnv(name);
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  if (["true", "1", "yes", "y"].includes(rawValue.toLowerCase())) {
+    return true;
+  }
+
+  if (["false", "0", "no", "n"].includes(rawValue.toLowerCase())) {
+    return false;
+  }
+
+  throw new Error(`Invalid ${name}: expected true or false`);
+}
+
 export const env: Env = {
   token: requiredEnv("DISCORD_TOKEN"),
   clientId: requiredEnv("DISCORD_CLIENT_ID"),
   guildId: optionalEnv("DISCORD_GUILD_ID"),
   defaultWelcomeChannelId: optionalEnv("DEFAULT_WELCOME_CHANNEL_ID"),
   defaultLogChannelId: optionalEnv("DEFAULT_LOG_CHANNEL_ID"),
-  youtubeCookie: optionalEnv("YOUTUBE_COOKIE"),
-  youtubeUserAgent: optionalEnv("YOUTUBE_USER_AGENT"),
+  lavalinkHost: optionalEnv("LAVALINK_HOST"),
+  lavalinkPort: optionalPort("LAVALINK_PORT", 2333),
+  lavalinkPassword: optionalEnv("LAVALINK_PASSWORD"),
+  lavalinkSecure: optionalBoolean("LAVALINK_SECURE", false),
   port: optionalPort("PORT", 8080)
 };

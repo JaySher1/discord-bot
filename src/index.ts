@@ -15,6 +15,7 @@ import { recordCommandUse } from "./services/commandStats.js";
 import { getGuildConfig } from "./services/configStore.js";
 import { initializeDatabase } from "./services/database.js";
 import { startHealthServer } from "./services/healthServer.js";
+import { createLavalinkManager } from "./services/lavalink.js";
 
 initializeDatabase();
 
@@ -32,6 +33,7 @@ const client = new Client({
 });
 
 const commandCollection = new Collection(commands.map((command) => [command.data.name, command]));
+const lavalink = createLavalinkManager(client);
 
 const healthServer = startHealthServer({
   port: env.port,
@@ -41,10 +43,18 @@ const healthServer = startHealthServer({
   })
 });
 
-client.once(Events.ClientReady, (readyClient) => {
+client.once(Events.ClientReady, async (readyClient) => {
   discordReady = true;
   console.log(`Logged in as ${readyClient.user.tag}`);
   console.log(`Loaded ${commands.length} slash commands.`);
+  await lavalink.init({
+    id: readyClient.user.id,
+    username: readyClient.user.username
+  });
+});
+
+client.on(Events.Raw, (packet) => {
+  void lavalink.sendRawData(packet);
 });
 
 client.on(Events.GuildMemberAdd, async (member) => {
