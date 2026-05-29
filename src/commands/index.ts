@@ -17,6 +17,7 @@ import { diceCommand } from "./games/dice.js";
 import { guessCommand } from "./games/guess.js";
 import { rpsCommand } from "./games/rps.js";
 import { triviaCommand } from "./games/trivia.js";
+import { playCommand } from "./music/play.js";
 import { animeBattleCommand } from "./nsfw/animeBattle.js";
 import { anilistCommand } from "./nsfw/anilist.js";
 import { bonkCommand } from "./nsfw/bonk.js";
@@ -61,6 +62,7 @@ export const commands: SlashCommand[] = [
   rpsCommand,
   guessCommand,
   triviaCommand,
+  playCommand,
   waifuCommand,
   claimCommand,
   collectionCommand,

@@ -9,6 +9,7 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
 - Moderation: kick, ban, timeout, untimeout, warn, and purge
 - Utility: help, server info, user info, avatar, and polls
 - Games/fun: coin flip, dice, rock-paper-scissors, number guessing, and trivia
+- Music: `/play` streams YouTube searches, YouTube links, and SoundCloud track links into voice
 - Adult-only waifu economy: pulls, claims, collections, trades, releases, profiles, tierlists, and NSFW social commands
 - SQLite persistence for waifu ownership, trades, tier votes, optional adult channel markers, and command stats
 - JSON-backed server configuration for a simple first version
@@ -70,6 +71,8 @@ When inviting the bot, enable the scopes `bot` and `applications.commands`. The 
 - Send Messages
 - Use Slash Commands
 - Embed Links
+- Connect
+- Speak
 - Manage Messages
 - Kick Members
 - Ban Members
