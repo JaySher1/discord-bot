@@ -82,7 +82,7 @@ export const playCommand: SlashCommand = {
 
       const trackUrl = track.info.uri ? `\n${track.info.uri}` : "";
       await interaction.editReply(
-        `Now playing **${track.info.title}** from ${formatSource(track.info.sourceName ?? "Lavalink")}.${trackUrl}`
+        `Queued **${track.info.title}** from ${formatSource(track.info.sourceName ?? "Lavalink")}.${trackUrl}`
       );
     } catch (error) {
       console.error("Play command failed", error);

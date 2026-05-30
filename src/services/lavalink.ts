@@ -1,4 +1,11 @@
-import { LavalinkManager, type SearchPlatform } from "lavalink-client";
+import {
+  LavalinkManager,
+  type SearchPlatform,
+  type Track,
+  type TrackExceptionEvent,
+  type TrackStuckEvent,
+  type UnresolvedTrack
+} from "lavalink-client";
 import type { Client } from "discord.js";
 import { env } from "../config/env.js";
 
@@ -45,12 +52,23 @@ export function createLavalinkManager(client: Client): LavalinkManager {
     console.error(`Lavalink node error: ${node.id}`, error);
   });
 
+  lavalink.on("trackStart", (player, track) => {
+    console.log(`Lavalink track started in guild ${player.guildId}: ${track?.info.title ?? "unknown track"}`);
+    void sendPlayerMessage(
+      client,
+      player.textChannelId,
+      `Now playing **${track?.info.title ?? "unknown track"}** from ${formatSource(track?.info.sourceName ?? "Lavalink")}.`
+    );
+  });
+
   lavalink.on("trackError", (player, track, payload) => {
     console.error(`Lavalink track error in guild ${player.guildId}: ${track?.info.title ?? "unknown track"}`, payload);
+    void sendPlayerMessage(client, player.textChannelId, formatTrackFailure(track, payload));
   });
 
   lavalink.on("trackStuck", (player, track, payload) => {
     console.error(`Lavalink track stuck in guild ${player.guildId}: ${track?.info.title ?? "unknown track"}`, payload);
+    void sendPlayerMessage(client, player.textChannelId, formatTrackStuck(track, payload));
   });
 
   return lavalink;
@@ -131,4 +149,52 @@ function isSoundCloudUrl(url: string): boolean {
 function isSpotifyUrl(url: string): boolean {
   const hostname = new URL(url).hostname.toLowerCase();
   return hostname.endsWith(".spotify.com") || hostname === "spotify.com";
+}
+
+async function sendPlayerMessage(client: Client, channelId: string | undefined | null, message: string): Promise<void> {
+  if (!channelId) {
+    return;
+  }
+
+  const channel = client.channels.cache.get(channelId) ?? (await client.channels.fetch(channelId).catch(() => null));
+
+  if (!channel?.isTextBased()) {
+    return;
+  }
+
+  if (!("send" in channel) || typeof channel.send !== "function") {
+    return;
+  }
+
+  await channel.send(message).catch((error: unknown) => {
+    console.error(`Could not send music message to channel ${channelId}`, error);
+  });
+}
+
+function formatTrackFailure(track: Track | UnresolvedTrack | null, payload: TrackExceptionEvent): string {
+  const title = track?.info.title ?? "that track";
+  const source = formatSource(track?.info.sourceName ?? "Lavalink");
+  const reason = payload.exception?.message ?? payload.error;
+
+  if (track?.info.sourceName?.toLowerCase() === "youtube") {
+    return `YouTube found **${title}**, but would not give Lavalink a playable audio stream. Fix the Lavalink YouTube OAuth/poToken setup, or try a SoundCloud link.`;
+  }
+
+  return `I could not play **${title}** from ${source}.${reason ? ` ${reason}` : ""}`;
+}
+
+function formatTrackStuck(track: Track | null, payload: TrackStuckEvent): string {
+  const title = track?.info.title ?? "that track";
+  return `Playback got stuck on **${title}** for ${payload.thresholdMs}ms, so I skipped it.`;
+}
+
+function formatSource(source: string): string {
+  switch (source.toLowerCase()) {
+    case "youtube":
+      return "YouTube";
+    case "soundcloud":
+      return "SoundCloud";
+    default:
+      return source;
+  }
 }
