@@ -8,6 +8,7 @@ import {
 } from "lavalink-client";
 import type { Client } from "discord.js";
 import { env } from "../config/env.js";
+import { clearNowPlayingControl, formatSource, sendMusicMessage, sendNowPlayingMessage } from "./musicControls.js";
 
 let lavalink: LavalinkManager | null = null;
 
@@ -54,21 +55,28 @@ export function createLavalinkManager(client: Client): LavalinkManager {
 
   lavalink.on("trackStart", (player, track) => {
     console.log(`Lavalink track started in guild ${player.guildId}: ${track?.info.title ?? "unknown track"}`);
-    void sendPlayerMessage(
+    void sendNowPlayingMessage(
       client,
+      player.guildId,
       player.textChannelId,
-      `Now playing **${track?.info.title ?? "unknown track"}** from ${formatSource(track?.info.sourceName ?? "Lavalink")}.`
+      track
     );
   });
 
   lavalink.on("trackError", (player, track, payload) => {
     console.error(`Lavalink track error in guild ${player.guildId}: ${track?.info.title ?? "unknown track"}`, payload);
-    void sendPlayerMessage(client, player.textChannelId, formatTrackFailure(track, payload));
+    clearNowPlayingControl(player.guildId);
+    void sendMusicMessage(client, player.textChannelId, formatTrackFailure(track, payload));
   });
 
   lavalink.on("trackStuck", (player, track, payload) => {
     console.error(`Lavalink track stuck in guild ${player.guildId}: ${track?.info.title ?? "unknown track"}`, payload);
-    void sendPlayerMessage(client, player.textChannelId, formatTrackStuck(track, payload));
+    clearNowPlayingControl(player.guildId);
+    void sendMusicMessage(client, player.textChannelId, formatTrackStuck(track, payload));
+  });
+
+  lavalink.on("queueEnd", (player) => {
+    clearNowPlayingControl(player.guildId);
   });
 
   return lavalink;
@@ -151,26 +159,6 @@ function isSpotifyUrl(url: string): boolean {
   return hostname.endsWith(".spotify.com") || hostname === "spotify.com";
 }
 
-async function sendPlayerMessage(client: Client, channelId: string | undefined | null, message: string): Promise<void> {
-  if (!channelId) {
-    return;
-  }
-
-  const channel = client.channels.cache.get(channelId) ?? (await client.channels.fetch(channelId).catch(() => null));
-
-  if (!channel?.isTextBased()) {
-    return;
-  }
-
-  if (!("send" in channel) || typeof channel.send !== "function") {
-    return;
-  }
-
-  await channel.send(message).catch((error: unknown) => {
-    console.error(`Could not send music message to channel ${channelId}`, error);
-  });
-}
-
 function formatTrackFailure(track: Track | UnresolvedTrack | null, payload: TrackExceptionEvent): string {
   const title = track?.info.title ?? "that track";
   const source = formatSource(track?.info.sourceName ?? "Lavalink");
@@ -186,15 +174,4 @@ function formatTrackFailure(track: Track | UnresolvedTrack | null, payload: Trac
 function formatTrackStuck(track: Track | null, payload: TrackStuckEvent): string {
   const title = track?.info.title ?? "that track";
   return `Playback got stuck on **${title}** for ${payload.thresholdMs}ms, so I skipped it.`;
-}
-
-function formatSource(source: string): string {
-  switch (source.toLowerCase()) {
-    case "youtube":
-      return "YouTube";
-    case "soundcloud":
-      return "SoundCloud";
-    default:
-      return source;
-  }
 }

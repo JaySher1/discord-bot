@@ -1,5 +1,6 @@
 import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { getLavalinkManager, getSearchSource } from "../../services/lavalink.js";
+import { formatSource } from "../../services/musicControls.js";
 import type { SlashCommand } from "../../types/command.js";
 
 export const playCommand: SlashCommand = {
@@ -80,9 +81,8 @@ export const playCommand: SlashCommand = {
         await player.play();
       }
 
-      const trackUrl = track.info.uri ? `\n${track.info.uri}` : "";
       await interaction.editReply(
-        `Queued **${track.info.title}** from ${formatSource(track.info.sourceName ?? "Lavalink")}.${trackUrl}`
+        `Queued **${track.info.title}** from ${formatSource(track.info.sourceName ?? "Lavalink")}.`
       );
     } catch (error) {
       console.error("Play command failed", error);
@@ -91,14 +91,3 @@ export const playCommand: SlashCommand = {
     }
   }
 };
-
-function formatSource(source: string): string {
-  switch (source.toLowerCase()) {
-    case "youtube":
-      return "YouTube";
-    case "soundcloud":
-      return "SoundCloud";
-    default:
-      return source;
-  }
-}

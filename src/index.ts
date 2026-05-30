@@ -16,6 +16,7 @@ import { getGuildConfig } from "./services/configStore.js";
 import { initializeDatabase } from "./services/database.js";
 import { startHealthServer } from "./services/healthServer.js";
 import { createLavalinkManager } from "./services/lavalink.js";
+import { handleMusicReaction } from "./services/musicControls.js";
 
 initializeDatabase();
 
@@ -26,10 +27,11 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates
   ],
-  partials: [Partials.Channel]
+  partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User]
 });
 
 const commandCollection = new Collection(commands.map((command) => [command.data.name, command]));
@@ -55,6 +57,10 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 client.on(Events.Raw, (packet) => {
   void lavalink.sendRawData(packet);
+});
+
+client.on(Events.MessageReactionAdd, (reaction, user) => {
+  void handleMusicReaction(reaction, user);
 });
 
 client.on(Events.GuildMemberAdd, async (member) => {
