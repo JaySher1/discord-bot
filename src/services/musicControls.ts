@@ -40,6 +40,9 @@ export async function sendNowPlayingMessage(
   activeControlMessages.set(guildId, message.id);
   await message.react(SKIP_REACTION).catch((error: unknown) => {
     console.error(`Could not add skip reaction to message ${message.id}`, error);
+    void channel.send(
+      "I could not add the skip reaction. Give me `Add Reactions` and `Read Message History` in this channel, then restart the song."
+    );
   });
 }
 
