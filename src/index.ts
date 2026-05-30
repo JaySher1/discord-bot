@@ -16,7 +16,7 @@ import { getGuildConfig } from "./services/configStore.js";
 import { initializeDatabase } from "./services/database.js";
 import { startHealthServer } from "./services/healthServer.js";
 import { createLavalinkManager } from "./services/lavalink.js";
-import { handleMusicReaction } from "./services/musicControls.js";
+import { handleMusicButtonInteraction } from "./services/musicControls.js";
 
 initializeDatabase();
 
@@ -59,10 +59,6 @@ client.on(Events.Raw, (packet) => {
   void lavalink.sendRawData(packet);
 });
 
-client.on(Events.MessageReactionAdd, (reaction, user) => {
-  void handleMusicReaction(reaction, user);
-});
-
 client.on(Events.GuildMemberAdd, async (member) => {
   const config = await getGuildConfig(member.guild.id);
 
@@ -86,6 +82,14 @@ client.on(Events.GuildMemberAdd, async (member) => {
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isButton()) {
+    const handled = await handleMusicButtonInteraction(interaction);
+
+    if (handled) {
+      return;
+    }
+  }
+
   if (!interaction.isChatInputCommand()) {
     return;
   }

@@ -1,17 +1,24 @@
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonInteraction,
+  ButtonStyle,
   EmbedBuilder,
   type Client,
   type Message,
-  type MessageReaction,
-  type PartialMessageReaction,
-  type PartialUser,
-  type SendableChannels,
-  type User
+  type SendableChannels
 } from "discord.js";
 import type { Track, UnresolvedTrack } from "lavalink-client";
 import { getLavalinkManager } from "./lavalink.js";
 
-export const SKIP_REACTION = "⏭️";
+export const MUSIC_CONTROL_IDS = {
+  pause: "music:pause",
+  skip: "music:skip",
+  shuffle: "music:shuffle",
+  stop: "music:stop"
+} as const;
+
+type MusicControlId = (typeof MUSIC_CONTROL_IDS)[keyof typeof MUSIC_CONTROL_IDS];
 
 const activeControlMessages = new Map<string, string>();
 
@@ -32,18 +39,14 @@ export async function sendNowPlayingMessage(
     return;
   }
 
+  const player = getLavalinkManager().getPlayer(guildId);
   const message = await channel.send({
-    content: `Now playing **${track.info.title}** from ${formatSource(track.info.sourceName ?? "Lavalink")}.`,
-    embeds: [buildTrackEmbed(track, "Now Playing")]
+    content: `Now playing: **${track.info.title}**`,
+    embeds: [buildTrackEmbed(track, "Now Playing")],
+    components: [buildControlsRow(Boolean(player?.queue.current), Boolean(player?.paused))]
   });
 
   activeControlMessages.set(guildId, message.id);
-  await message.react(SKIP_REACTION).catch((error: unknown) => {
-    console.error(`Could not add skip reaction to message ${message.id}`, error);
-    void channel.send(
-      "I could not add the skip reaction. Give me `Add Reactions` and `Read Message History` in this channel, then restart the song."
-    );
-  });
 }
 
 export async function sendMusicMessage(
@@ -62,44 +65,82 @@ export async function sendMusicMessage(
   });
 }
 
-export async function handleMusicReaction(
-  reaction: MessageReaction | PartialMessageReaction,
-  user: User | PartialUser
-): Promise<void> {
-  if (user.partial) {
-    await user.fetch().catch(() => null);
+export async function handleMusicButtonInteraction(interaction: ButtonInteraction): Promise<boolean> {
+  if (!isMusicControlId(interaction.customId)) {
+    return false;
   }
 
-  if (user.bot || reaction.emoji.name !== SKIP_REACTION) {
-    return;
+  await interaction.deferUpdate().catch(() => null);
+
+  const guild = interaction.guild;
+
+  if (!guild || interaction.user.bot) {
+    return true;
   }
 
-  const message = await fetchReactionMessage(reaction);
-  const guild = message.guild;
+  if (activeControlMessages.get(guild.id) !== interaction.message.id) {
+    return true;
+  }
 
-  if (!guild || activeControlMessages.get(guild.id) !== message.id) {
-    return;
+  const botMember = guild.members.me ?? (await guild.members.fetchMe().catch(() => null));
+  const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+  const botVoiceChannelId = botMember?.voice.channelId;
+
+  if (!botVoiceChannelId || member?.voice.channelId !== botVoiceChannelId) {
+    return true;
   }
 
   const lavalink = getLavalinkManager();
   const player = lavalink.getPlayer(guild.id);
 
   if (!player?.queue.current) {
-    activeControlMessages.delete(guild.id);
-    return;
+    clearNowPlayingControl(guild.id);
+    await setControlsDisabled(interaction.message).catch(() => null);
+    return true;
   }
 
-  const botMember = guild.members.me ?? (await guild.members.fetchMe().catch(() => null));
-  const member = await guild.members.fetch(user.id).catch(() => null);
-  const botVoiceChannelId = botMember?.voice.channelId;
-
-  if (!botVoiceChannelId || member?.voice.channelId !== botVoiceChannelId) {
-    return;
+  try {
+    switch (interaction.customId) {
+      case MUSIC_CONTROL_IDS.pause:
+        if (player.paused) {
+          await player.resume();
+        } else {
+          await player.pause();
+        }
+        break;
+      case MUSIC_CONTROL_IDS.skip:
+        await player.skip();
+        break;
+      case MUSIC_CONTROL_IDS.shuffle:
+        if (player.queue.tracks.length > 1) {
+          await player.queue.shuffle();
+        }
+        break;
+      case MUSIC_CONTROL_IDS.stop:
+        await player.destroy("stopped by button");
+        clearNowPlayingControl(guild.id);
+        break;
+      default:
+        break;
+    }
+  } catch (error: unknown) {
+    console.error(`Could not process music button ${interaction.customId} in guild ${guild.id}`, error);
   }
 
-  await player.skip().catch((error: unknown) => {
-    console.error(`Could not skip track in guild ${guild.id}`, error);
-  });
+  const latestPlayer = lavalink.getPlayer(guild.id);
+
+  if (!latestPlayer?.queue.current) {
+    await setControlsDisabled(interaction.message).catch(() => null);
+    return true;
+  }
+
+  await interaction.message
+    .edit({
+      components: [buildControlsRow(Boolean(latestPlayer.queue.current), Boolean(latestPlayer.paused))]
+    })
+    .catch(() => null);
+
+  return true;
 }
 
 export function clearNowPlayingControl(guildId: string): void {
@@ -112,10 +153,6 @@ export function buildTrackEmbed(track: Track | UnresolvedTrack, title: string): 
     .setDescription(`${track.info.author ? `${track.info.author}\n` : ""}${formatDuration(track.info.duration)}`)
     .addFields({ name: "Source", value: formatSource(track.info.sourceName ?? "Lavalink"), inline: true })
     .setTimestamp();
-
-  if (track.info.uri) {
-    embed.setURL(track.info.uri);
-  }
 
   if (track.info.artworkUrl) {
     embed.setThumbnail(track.info.artworkUrl);
@@ -177,18 +214,6 @@ async function fetchSendableChannel(
   return channel;
 }
 
-async function fetchReactionMessage(reaction: MessageReaction | PartialMessageReaction): Promise<Message> {
-  if (reaction.partial) {
-    await reaction.fetch();
-  }
-
-  if (reaction.message.partial) {
-    await reaction.message.fetch();
-  }
-
-  return reaction.message as Message;
-}
-
 function formatRequester(requester: unknown): string | null {
   if (!requester || typeof requester !== "object") {
     return null;
@@ -211,4 +236,44 @@ function truncate(value: string, maxLength: number): string {
   }
 
   return `${value.slice(0, maxLength - 3)}...`;
+}
+
+function buildControlsRow(hasTrack: boolean, isPaused: boolean): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(MUSIC_CONTROL_IDS.pause)
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji(isPaused ? "▶️" : "⏸️")
+      .setDisabled(!hasTrack),
+    new ButtonBuilder()
+      .setCustomId(MUSIC_CONTROL_IDS.skip)
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji("⏭️")
+      .setDisabled(!hasTrack),
+    new ButtonBuilder()
+      .setCustomId(MUSIC_CONTROL_IDS.shuffle)
+      .setStyle(ButtonStyle.Success)
+      .setEmoji("🔀")
+      .setDisabled(!hasTrack),
+    new ButtonBuilder()
+      .setCustomId(MUSIC_CONTROL_IDS.stop)
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji("⏹️")
+      .setDisabled(!hasTrack)
+  );
+}
+
+async function setControlsDisabled(message: Message): Promise<void> {
+  await message.edit({
+    components: [buildControlsRow(false, false)]
+  });
+}
+
+function isMusicControlId(customId: string): customId is MusicControlId {
+  return (
+    customId === MUSIC_CONTROL_IDS.pause ||
+    customId === MUSIC_CONTROL_IDS.skip ||
+    customId === MUSIC_CONTROL_IDS.shuffle ||
+    customId === MUSIC_CONTROL_IDS.stop
+  );
 }
