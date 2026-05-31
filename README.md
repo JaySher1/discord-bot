@@ -10,6 +10,7 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
 - Utility: help, server info, user info, avatar, and polls
 - Games/fun: coin flip, dice, rock-paper-scissors, number guessing, and trivia
 - Music: `/play` uses Lavalink to stream YouTube searches, YouTube links, and SoundCloud track links into voice
+- Voice clipping: a separate clip bot process can save short Ogg clips from a voice channel
 - Adult-only waifu economy: pulls, claims, collections, trades, releases, profiles, tierlists, and NSFW social commands
 - SQLite persistence for waifu ownership, trades, tier votes, optional adult channel markers, and command stats
 - JSON-backed server configuration for a simple first version
@@ -27,6 +28,9 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
    ```text
    DISCORD_TOKEN=...
    DISCORD_CLIENT_ID=...
+   CLIP_BOT_TOKEN=...
+   CLIP_BOT_CLIENT_ID=...
+   FFMPEG_PATH=ffmpeg
    DISCORD_GUILD_ID=...
    LAVALINK_HOST=127.0.0.1
    LAVALINK_PORT=2333
@@ -50,12 +54,19 @@ A TypeScript Discord bot for a new server, built with Discord.js. The first vers
 
    ```powershell
    npm run deploy
+   npm run deploy:clip
    ```
 
 6. Start the bot:
 
    ```powershell
    npm start
+   ```
+
+   To run only the clip bot locally after building:
+
+   ```powershell
+   npm run start:clip
    ```
 
 ## VPS notes
@@ -65,6 +76,22 @@ On a VPS or Droplet, keep `.env` private and run the bot from the project direct
 ```powershell
 npm install -g pm2
 pm2 start dist/index.js --name server-command-bot
+pm2 start dist/clip-bot.js --name clip-bot
+pm2 save
+```
+
+After updates on the VPS:
+
+```bash
+cd /path/to/discord-bot
+git pull origin main
+sudo apt-get update
+sudo apt-get install -y ffmpeg
+npm install --legacy-peer-deps
+npm run build
+npm run deploy:clip
+pm2 restart server-command-bot --update-env || pm2 start dist/index.js --name server-command-bot
+pm2 restart clip-bot --update-env || pm2 start dist/clip-bot.js --name clip-bot
 pm2 save
 ```
 
@@ -141,6 +168,53 @@ When inviting the bot, enable the scopes `bot` and `applications.commands`. The 
 - Kick Members
 - Ban Members
 - Moderate Members
+
+The clip bot is a second Discord application. Invite it separately with the scopes `bot` and `applications.commands`. It needs:
+
+- Send Messages
+- Use Slash Commands
+- Attach Files
+- Connect
+- View Channels for the voice and clip channels
+
+## Clip bot setup
+
+The clip bot uses `@discordjs/voice` receive streams and system FFmpeg. It does not replace Lavalink and does not download music permanently.
+
+Clip bot environment:
+
+```text
+CLIP_BOT_TOKEN=...
+CLIP_BOT_CLIENT_ID=...
+FFMPEG_PATH=ffmpeg
+```
+
+Commands:
+
+```text
+/clip enable seconds:30 channel:#clips
+/clip save title:"optional title"
+/clip status
+/clip stop
+```
+
+`/clip enable` requires Manage Guild and posts a consent/privacy notice in the clip channel. `/clip save` can only be run by someone in the same voice channel as the clip bot. The bot renders a temporary `.ogg`, checks it is below the conservative 24 MiB upload guard, uploads it, then deletes the temp file. If it is too large, it replies `clip too large, reduce seconds.`
+
+Temporary render files live under `data/clip-temp/`. The clip bot cleans stale temp clips on startup and clears active temp files during shutdown.
+
+### Music audio feasibility checkpoint
+
+The clip bot is intentionally separate so it can run while the Lavalink music bot is active. Discord voice receive behavior still needs to be verified in the real guild:
+
+1. Start Lavalink and the main music bot.
+2. Start the clip bot.
+3. Put both bots in the same voice channel.
+4. Play a short track with `/play` while no users are speaking.
+5. Run `/clip enable seconds:10 channel:#clips`.
+6. Run `/clip save title:"music receive test"`.
+7. Listen to the uploaded Ogg.
+
+If the Ogg contains the music, this guild/runtime exposes the music bot packets to the clip bot and clipping captures that audio. If the Ogg is silent, Discord is not exposing the music bot audio packets to the receive API in this setup; the feature still works for voice users that Discord exposes to the clip bot.
 
 ## Commands
 

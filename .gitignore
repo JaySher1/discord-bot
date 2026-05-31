@@ -4,6 +4,7 @@ dist/
 data/*.json
 data/*.sqlite
 data/*.sqlite-*
+data/clip-temp/
 !data/.gitkeep
 npm-debug.log*
 yarn-debug.log*
