@@ -66,6 +66,8 @@ type GuildClipState = {
   connection: VoiceConnection;
   sources: Map<string, AudioSource>;
   observedUserIds: Set<string>;
+  ignoredBotUserIds: Set<string>;
+  pendingUserIds: Set<string>;
   rendering: boolean;
   activeTempFiles: Set<string>;
   speakingStartListener: (userId: string) => void;
@@ -143,9 +145,13 @@ export class ClipRecorder {
       connection,
       sources: new Map(),
       observedUserIds: new Set(),
+      ignoredBotUserIds: new Set(),
+      pendingUserIds: new Set(),
       rendering: false,
       activeTempFiles: new Set(),
-      speakingStartListener: (userId: string) => this.subscribeToUser(state, userId)
+      speakingStartListener: (userId: string) => {
+        void this.subscribeToUser(state, userId);
+      }
     };
 
     connection.receiver.speaking.on("start", state.speakingStartListener);
@@ -249,6 +255,10 @@ export class ClipRecorder {
       state.observedUserIds.size > 0
         ? [...state.observedUserIds].slice(0, 8).map((userId) => `<@${userId}>`).join(", ")
         : "none yet";
+    const ignoredBots =
+      state.ignoredBotUserIds.size > 0
+        ? [...state.ignoredBotUserIds].slice(0, 8).map((userId) => `<@${userId}>`).join(", ")
+        : "none";
 
     return [
       "Clip bot is active.",
@@ -257,7 +267,8 @@ export class ClipRecorder {
       `Output channel: <#${state.outputChannelId}>`,
       `Rendering: ${state.rendering ? "yes" : "no"}`,
       `Buffered speakers: ${bufferedSpeakers}`,
-      `Observed packet senders: ${observedSpeakers}`
+      `Observed packet senders: ${observedSpeakers}`,
+      `Ignored bot senders: ${ignoredBots}`
     ].join("\n");
   }
 
@@ -293,9 +304,22 @@ export class ClipRecorder {
     await Promise.all(guildIds.map((guildId) => this.stop(guildId)));
   }
 
-  private subscribeToUser(state: GuildClipState, userId: string): void {
-    if (state.sources.has(userId)) {
+  private async subscribeToUser(state: GuildClipState, userId: string): Promise<void> {
+    if (state.sources.has(userId) || state.ignoredBotUserIds.has(userId) || state.pendingUserIds.has(userId)) {
       return;
+    }
+
+    state.pendingUserIds.add(userId);
+
+    try {
+      const user = state.client.users.cache.get(userId) ?? (await state.client.users.fetch(userId).catch(() => null));
+
+      if (user?.bot) {
+        state.ignoredBotUserIds.add(userId);
+        return;
+      }
+    } finally {
+      state.pendingUserIds.delete(userId);
     }
 
     const stream = state.connection.receiver.subscribe(userId, {
