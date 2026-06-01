@@ -16,13 +16,6 @@ export const clipCommand = new SlashCommandBuilder()
     subcommand
       .setName("enable")
       .setDescription("Start the rolling voice clip buffer.")
-      .addIntegerOption((option) =>
-        option
-          .setName("seconds")
-          .setDescription("Clip length in seconds. Defaults to 30, max 60.")
-          .setMinValue(1)
-          .setMaxValue(60)
-      )
       .addChannelOption((option) =>
         option
           .setName("channel")
@@ -32,6 +25,13 @@ export const clipCommand = new SlashCommandBuilder()
             ChannelType.GuildAnnouncement
           )
           .setRequired(true)
+      )
+      .addIntegerOption((option) =>
+        option
+          .setName("seconds")
+          .setDescription("Clip length in seconds. Defaults to 30, max 60.")
+          .setMinValue(1)
+          .setMaxValue(60)
       )
   )
   .addSubcommand((subcommand) =>
